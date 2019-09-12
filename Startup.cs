@@ -12,15 +12,37 @@ namespace ENOHSA_PAEC
 {
     public class Startup
     {
+        // Inicialización del tipo de autenticación que será utilizada por defecto
+        const string persistentAuthType = CookieAuthenticationDefaults.AuthenticationType;
+        
+        // Configurar el middleware de autenticación de OWIN por medio de cookies
         public void Configuration(IAppBuilder app)
         {
-            // For more information on how to configure your application, visit http://go.microsoft.com/fwlink/?LinkID=316888
+            // Configurar la autenticación por medio de cookies para que sea persistente, esto quiere decir 
+            // que se va a mantener la sesión del usuario sin cerrarse mientras se envían los requests 
+            app.UseCookieAuthentication(new CookieAuthenticationOptions {
+                AuthenticationType = persistentAuthType
+            });
 
-            string time = DateTime.Now.Millisecond.ToString();
+            app.SetDefaultSignInAsAuthenticationType(persistentAuthType);
 
-            app.Run(async context => {
-                await context.Response.WriteAsync(time + " " + "Welcome to OWIN Application");
-            });            
+            // La autenticación se efectúa por medio de Keycloak, se debe configurar 
+            // las opciones de autenticación con la que se conectará al servicio Keycloack
+            app.UseKeycloakAuthentication(new KeycloakAuthenticationOptions
+            {
+                Realm = WebConfigurationManager.AppSettings["RealmId"],
+                ClientId = WebConfigurationManager.AppSettings["ClientId"],
+                ClientSecret = WebConfigurationManager.AppSettings["ClientSecret"],
+                KeycloakUrl = WebConfigurationManager.AppSettings["Authority"],
+                AuthenticationType = persistentAuthType,
+                SignInAsAuthenticationType = persistentAuthType,
+                AllowUnsignedTokens = false,
+                DisableIssuerSigningKeyValidation = false,
+                DisableIssuerValidation = false,
+                DisableAudienceValidation = false,
+                TokenClockSkew = TimeSpan.FromSeconds(2)
+            });
+            
         }
     }
 }
